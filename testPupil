@@ -1,0 +1,69 @@
+% testExperiment.m
+%
+%        $Id$
+%      usage: testExperiment
+%         by: justin gardner
+%       date: 09/07/06
+%  copyright: (c) 2006 Justin Gardner (GPL see mgl/COPYING)
+%    purpose: example program to show how to use the task structure
+%
+function myscreen = testPupil(screenName)
+
+% check arguments
+if ~any(nargin == [0 1])
+  help testPupil
+  return
+end
+
+myscreen = initScreen;
+
+task{1}{1}.waitForBacktick = 1;
+task{1}{1}.seglen = 10;
+task{1}{1}.parameter.luminance = [.2 .5 1];
+
+% initialize our task
+for phaseNum = 1:length(task{1})
+  [task{1}{phaseNum} myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@updateScreenCallback);
+end
+
+% init the stimulus
+global stimulus;
+myscreen = initStimulus('stimulus',myscreen);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% run the eye calibration
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+myscreen = eyeCalibDisp(myscreen);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Main display loop
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+phaseNum = 1;
+while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
+  % update the fixation
+  [task{1} myscreen phaseNum] = updateTask(task{1},myscreen,phaseNum);
+  % flip screen
+  myscreen = tickScreen(myscreen,task);
+end
+
+% if we got here, we are at the end of the experiment
+myscreen = endTask(myscreen,task);
+clear global stimulus;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% function that gets called at the start of each segment
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [task myscreen] = startSegmentCallback(task, myscreen)
+
+global stimulus;
+stimulus.fixationLum = task.thistrial.luminance;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% function that gets called to draw the stimulus each frame
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [task myscreen] = updateScreenCallback(task, myscreen)
+
+global stimulus
+mglClearScreen;
+mglFixationCross(1, 2, stimulus.fixationLum, [0,0]);
+
